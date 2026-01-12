@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Живая доска ханов — Интерактивная игра</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: radial-gradient(circle, #0f172a 0%, #020617 100%);
+            color: white;
+            overflow: hidden; 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.5rem;
+            flex: 1;
+            min-height: 0; 
+            padding: 0 1.5rem 1.5rem 1.5rem;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+
+        .drop-zone {
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            min-height: 240px;
+        }
+
+        .drop-zone.drag-over {
+            background-color: rgba(251, 191, 36, 0.1);
+            border-color: #fbbf24;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.1);
+        }
+
+        .draggable {
+            cursor: grab;
+            transition: transform 0.1s, background 0.2s;
+            touch-action: none;
+        }
+
+        .fact-card {
+            background: #1e293b;
+            border-left: 4px solid transparent;
+        }
+        
+        .fact-card[data-type="date"] { border-left-color: #60a5fa; }
+        .fact-card[data-type="ext"] { border-left-color: #f87171; }
+        .fact-card[data-type="law"] { border-left-color: #10b981; }
+
+        .slot-placeholder {
+            border: 1px dashed rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.25);
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            height: 40px;
+            background: rgba(0,0,0,0.1);
+        }
+
+        .correct-drop {
+            animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            background: #0f172a;
+            border: 1px solid #10b981;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .category-header {
+            position: sticky;
+            top: 0;
+            background: #0f172a;
+            z-index: 20;
+            padding: 8px 0;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="h-[80px] flex flex-col justify-center items-center shrink-0">
+        <h1 class="text-2xl md:text-3xl font-bold text-yellow-500 uppercase tracking-widest">Живая доска ханов</h1>
+        <p class="text-gray-400 text-xs italic tracking-wide">Цели урока: 10.3.1.2, 10.3.3.3 (Становление государственности)</p>
+    </header>
+
+    <div class="main-layout">
+        
+        <!-- Левая панель: Банк фактов -->
+        <aside class="bg-slate-900/60 rounded-2xl p-4 border border-slate-800 flex flex-col min-h-0">
+            <h2 class="text-sm font-black mb-4 text-center text-slate-400 tracking-widest uppercase">📦 Банк фактов</h2>
+            
+            <div id="fact-bank" class="flex-1 overflow-y-auto custom-scroll pr-2">
+                
+                <div class="mb-6">
+                    <div class="category-header text-[10px] text-blue-400 font-black uppercase">📅 Даты правления</div>
+                    <div class="space-y-2">
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="date" data-id="date-kassym">1511–1521 гг.</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="date" data-id="date-hakhnazar">1538–1580 гг.</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="date" data-id="date-tauelkel">1582–1598 гг.</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="date" data-id="date-esim">1598–1628 гг.</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="date" data-id="date-zhan">1628–1652 гг.</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="date" data-id="date-tauke">1680–1715 гг.</div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <div class="category-header text-[10px] text-red-400 font-black uppercase">⚔️ Внешняя политика</div>
+                    <div class="space-y-2">
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="ext" data-id="ext-kassym">Дипломатия с Москвой</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="ext" data-id="ext-hakh">Союз с Бухарским ханством</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="ext" data-id="ext-tauelkel">Клятва верности с Россией (1594)</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="ext" data-id="ext-esim">Взятие Ташкента</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="ext" data-id="ext-zhan">Орбулакская битва</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="ext" data-id="ext-tauke">Антиджунгарский курултай</div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <div class="category-header text-[10px] text-emerald-400 font-black uppercase">📜 Законы и Реформы</div>
+                    <div class="space-y-2">
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="law" data-id="law-kassym">«Қасқа жолы»</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="law" data-id="law-hakh">Возрождение единства</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="law" data-id="law-tauelkel">Отвоевание присырдарьинских городов</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="law" data-id="law-esim">«Ескі жолы»</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="law" data-id="law-zhan">Прозвище «Салкам»</div>
+                        <div class="draggable fact-card p-3 rounded-lg shadow text-sm" draggable="true" data-type="law" data-id="law-tauke">«Жеті Жарғы»</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="location.reload()" class="mt-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition text-xs font-bold uppercase tracking-widest shrink-0">
+                🔄 Сбросить прогресс
+            </button>
+        </aside>
+
+        <!-- Правая панель: Сетка ханов -->
+        <main class="overflow-y-auto custom-scroll pr-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 content-start pb-10">
+            
+            <!-- Касым хан -->
+            <div class="drop-zone p-6 rounded-3xl flex flex-col" data-accept="date-kassym,ext-kassym,law-kassym">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-2xl flex items-center justify-center text-2xl shadow-inner">👑</div>
+                    <h3 class="font-black text-yellow-500 uppercase tracking-tighter">Касым хан</h3>
+                </div>
+                <div class="dropped-items space-y-3 flex-1">
+                    <div class="slot-placeholder" data-type="date">Дата правления</div>
+                    <div class="slot-placeholder" data-type="ext">Внешняя политика</div>
+                    <div class="slot-placeholder" data-type="law">Правовые реформы</div>
+                </div>
+            </div>
+
+            <!-- Хак-Назар хан -->
+            <div class="drop-zone p-6 rounded-3xl flex flex-col" data-accept="date-hakhnazar,ext-hakh,law-hakh">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center text-2xl">🛡️</div>
+                    <h3 class="font-black text-blue-500 uppercase tracking-tighter text-sm">Хак-Назар хан</h3>
+                </div>
+                <div class="dropped-items space-y-3 flex-1">
+                    <div class="slot-placeholder" data-type="date">Дата правления</div>
+                    <div class="slot-placeholder" data-type="ext">Внешняя политика</div>
+                    <div class="slot-placeholder" data-type="law">Правовые реформы</div>
+                </div>
+            </div>
+
+            <!-- Тауекель хан -->
+            <div class="drop-zone p-6 rounded-3xl flex flex-col border-cyan-500/30" data-accept="date-tauelkel,ext-tauelkel,law-tauelkel">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-cyan-500/10 text-cyan-500 rounded-2xl flex items-center justify-center text-2xl">🏹</div>
+                    <h3 class="font-black text-cyan-500 uppercase tracking-tighter">Тауекель хан</h3>
+                </div>
+                <div class="dropped-items space-y-3 flex-1">
+                    <div class="slot-placeholder" data-type="date">Дата правления</div>
+                    <div class="slot-placeholder" data-type="ext">Внешняя политика</div>
+                    <div class="slot-placeholder" data-type="law">Правовые реформы</div>
+                </div>
+            </div>
+
+            <!-- Есим хан -->
+            <div class="drop-zone p-6 rounded-3xl flex flex-col" data-accept="date-esim,ext-esim,law-esim">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center text-2xl">⚔️</div>
+                    <h3 class="font-black text-red-400 uppercase tracking-tighter text-sm">Есим хан</h3>
+                </div>
+                <div class="dropped-items space-y-3 flex-1">
+                    <div class="slot-placeholder" data-type="date">Дата правления</div>
+                    <div class="slot-placeholder" data-type="ext">Внешняя политика</div>
+                    <div class="slot-placeholder" data-type="law">Правовые реформы</div>
+                </div>
+            </div>
+
+            <!-- Салкам Жангир -->
+            <div class="drop-zone p-6 rounded-3xl flex flex-col" data-accept="date-zhan,ext-zhan,law-zhan">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center text-2xl">🏔️</div>
+                    <h3 class="font-black text-orange-400 uppercase tracking-tighter text-sm">Салкам Жангир</h3>
+                </div>
+                <div class="dropped-items space-y-3 flex-1">
+                    <div class="slot-placeholder" data-type="date">Дата правления</div>
+                    <div class="slot-placeholder" data-type="ext">Внешняя политика</div>
+                    <div class="slot-placeholder" data-type="law">Правовые реформы</div>
+                </div>
+            </div>
+
+            <!-- Тауке хан -->
+            <div class="drop-zone p-6 rounded-3xl flex flex-col" data-accept="date-tauke,ext-tauke,law-tauke">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center text-2xl">📜</div>
+                    <h3 class="font-black text-emerald-400 uppercase tracking-tighter">Тауке хан</h3>
+                </div>
+                <div class="dropped-items space-y-3 flex-1">
+                    <div class="slot-placeholder" data-type="date">Дата правления</div>
+                    <div class="slot-placeholder" data-type="ext">Внешняя политика</div>
+                    <div class="slot-placeholder" data-type="law">Правовые реформы</div>
+                </div>
+            </div>
+
+            <!-- Инструкция для учеников -->
+            <div class="p-6 rounded-3xl bg-yellow-500/10 border border-yellow-500/30 flex flex-col items-center justify-center text-center">
+                <div class="text-4xl mb-4">📢</div>
+                <h4 class="font-bold text-yellow-500 mb-2 uppercase text-xs tracking-widest">Инструкция</h4>
+                <p class="text-[13px] text-gray-300 leading-relaxed mb-3">При переносе каждого блока вы обязаны привести аргументы!</p>
+                <div class="space-y-2 text-[10px] text-yellow-500 font-bold uppercase italic">
+                    <p>— Докажите «ПРЕЕМСТВЕННОСТЬ» политики</p>
+                    <p>— Объясните «ЭТАП ГОСУДАРСТВЕННОСТИ»</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Уведомление об ошибке -->
+    <div id="toast" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-all pointer-events-none z-50 flex items-center gap-3 font-bold text-sm">
+        <span>❌ Ошибка: факт не подходит этому правителю!</span>
+    </div>
+
+    <script>
+        const draggables = document.querySelectorAll('.draggable');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        const toast = document.getElementById('toast');
+
+        draggables.forEach(draggable => {
+            draggable.addEventListener('dragstart', (e) => {
+                draggable.classList.add('opacity-30');
+                e.dataTransfer.setData('text/plain', draggable.dataset.id);
+            });
+
+            draggable.addEventListener('dragend', () => {
+                draggable.classList.remove('opacity-30');
+            });
+        });
+
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                
+                const factId = e.dataTransfer.getData('text/plain');
+                const acceptedIds = zone.dataset.accept.split(',');
+                const draggableElement = document.querySelector(`[data-id="${factId}"]`);
+
+                if (acceptedIds.includes(factId)) {
+                    processPlacement(zone, draggableElement);
+                } else {
+                    showError();
+                }
+            });
+        });
+
+        function processPlacement(zone, element) {
+            const type = element.dataset.type;
+            const placeholder = zone.querySelector(`.slot-placeholder[data-type="${type}"]`);
+            
+            const card = document.createElement('div');
+            card.className = `p-3 rounded-xl text-sm font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 correct-drop`;
+            card.innerHTML = element.innerHTML;
+            
+            if (placeholder) {
+                placeholder.replaceWith(card);
+            } else {
+                zone.querySelector('.dropped-items').appendChild(card);
+            }
+
+            element.classList.add('pointer-events-none', 'opacity-10');
+            element.setAttribute('draggable', 'false');
+        }
+
+        function showError() {
+            toast.style.opacity = '1';
+            toast.style.top = '2rem';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.top = '1rem';
+            }, 2000);
+        }
+
+        let touchItem = null;
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.classList.contains('draggable')) {
+                touchItem = e.target;
+            }
+        }, {passive: false});
+
+        document.addEventListener('touchend', (e) => {
+            if (!touchItem) return;
+            
+            const touch = e.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            const zone = target ? target.closest('.drop-zone') : null;
+
+            if (zone) {
+                const factId = touchItem.dataset.id;
+                if (zone.dataset.accept.split(',').includes(factId)) {
+                    processPlacement(zone, touchItem);
+                } else {
+                    showError();
+                }
+            }
+            touchItem = null;
+        });
+    </script>
+</body>
+</html>
